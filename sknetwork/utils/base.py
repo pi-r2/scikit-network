@@ -3,13 +3,15 @@
 """
 Created on Jun 28, 2019
 @author: Quentin Lutz <qlutz@enst.fr>
+@author: Nathan de Lara <ndelara@enst.fr>
 """
 import inspect
 
+from sknetwork.utils.format import bipartite2undirected
+
 
 class Algorithm:
-    """Base class for all algorithms.
-    """
+    """Base class for all algorithms."""
     def __repr__(self):
         # parameters not to display
         arg_black_list = ['self', 'random_state', 'verbose']
@@ -35,3 +37,61 @@ class Algorithm:
     def fit(self, *args, **kwargs):
         """Fit Algorithm to the data."""
         raise NotImplementedError
+
+
+def bialgorithm(algorithm: Algorithm):
+    """Constructor for naive algorithms on bigraphs."""
+    class BiAlgo(algorithm):
+        """Naive bialgorithm"""
+        def __init__(self, *args, **kwargs):
+            super(BiAlgo, self).__init__(*args, **kwargs)
+
+            if hasattr(self, 'dendrogram_'):
+                self.dendrogram_row_ = None
+                self.dendrogram_col_ = None
+
+            if hasattr(self, 'embedding_'):
+                self.embedding_row_ = None
+                self.embedding_col_ = None
+
+            if hasattr(self, 'labels_'):
+                self.labels_row_ = None
+                self.labels_col_ = None
+
+            if hasattr(self, 'membership_'):
+                self.membership_row_ = None
+                self.membership_col_ = None
+
+            if hasattr(self, 'scores_'):
+                self.scores_row_ = None
+                self.scores_col_ = None
+
+        def fit(self, *args, **kwargs):
+            """Fit Algorithm to the data."""
+            biadjacency = args[0]
+            n_row, n_col = biadjacency.shape
+
+            adjacency = bipartite2undirected(biadjacency)
+            new_args = list(args)
+            new_args[0] = adjacency
+            super(BiAlgo, self).fit(*new_args, **kwargs)
+
+            if hasattr(self, 'dendrogram_'):
+                self.dendrogram_row_ = self.dendrogram_[:n_row]
+                self.dendrogram_col_ = self.dendrogram_[n_row:]
+
+            if hasattr(self, 'embedding_'):
+                self.embedding_row_ = None
+                self.embedding_col_ = None
+
+            if hasattr(self, 'labels_'):
+                self.labels_row_ = None
+                self.labels_col_ = None
+
+            if hasattr(self, 'membership_'):
+                self.membership_row_ = None
+                self.membership_col_ = None
+
+            if hasattr(self, 'scores_'):
+                self.scores_row_ = None
+                self.scores_col_ = None
