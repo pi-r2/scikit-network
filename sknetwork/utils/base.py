@@ -7,7 +7,7 @@ Created on Jun 28, 2019
 """
 import inspect
 
-from sknetwork.utils.format import bipartite2undirected
+from scipy import sparse
 
 
 class Algorithm:
@@ -71,7 +71,7 @@ def bialgorithm(algorithm: Algorithm):
             biadjacency = args[0]
             n_row, n_col = biadjacency.shape
 
-            adjacency = bipartite2undirected(biadjacency)
+            adjacency = sparse.bmat([[None, biadjacency], [biadjacency.T, None]], format='csr')
             new_args = list(args)
             new_args[0] = adjacency
             super(BiAlgo, self).fit(*new_args, **kwargs)
@@ -79,19 +79,28 @@ def bialgorithm(algorithm: Algorithm):
             if hasattr(self, 'dendrogram_'):
                 self.dendrogram_row_ = self.dendrogram_[:n_row]
                 self.dendrogram_col_ = self.dendrogram_[n_row:]
+                self.dendrogram_ = self.dendrogram_row_
 
             if hasattr(self, 'embedding_'):
-                self.embedding_row_ = None
-                self.embedding_col_ = None
+                self.embedding_row_ = self.embedding_[:n_row]
+                self.embedding_col_ = self.embedding_[n_row:]
+                self.embedding_ = self.embedding_row_
 
             if hasattr(self, 'labels_'):
-                self.labels_row_ = None
-                self.labels_col_ = None
+                self.labels_row_ = self.labels_[:n_row]
+                self.labels_col_ = self.labels_[n_row:]
+                self.labels_ = self.labels_row_
 
             if hasattr(self, 'membership_'):
-                self.membership_row_ = None
-                self.membership_col_ = None
+                self.membership_row_ = self.membership_[:n_row]
+                self.membership_col_ = self.membership_[n_row:]
+                self.membership_ = self.membership_row_
 
             if hasattr(self, 'scores_'):
-                self.scores_row_ = None
-                self.scores_col_ = None
+                self.scores_row_ = self.scores_[:n_row]
+                self.scores_col_ = self.scores_[n_row:]
+                self.scores_ = self.scores_row_
+
+            return self
+
+    return BiAlgo

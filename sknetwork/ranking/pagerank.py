@@ -15,9 +15,9 @@ from scipy.sparse.linalg import eigs, LinearOperator, lsqr, bicgstab
 from sknetwork.basics import CoNeighbors
 from sknetwork.linalg.normalization import normalize
 from sknetwork.ranking.base import BaseRanking
-from sknetwork.utils.format import bipartite2undirected
+from sknetwork.utils.base import bialgorithm
 from sknetwork.utils.check import check_format, is_square
-from sknetwork.utils.seeds import seeds2probs, stack_seeds
+from sknetwork.utils.seeds import seeds2probs
 from sknetwork.utils.verbose import VerboseMixin
 
 
@@ -174,80 +174,12 @@ class PageRank(BaseRanking, VerboseMixin):
         return self
 
 
-class BiPageRank(PageRank):
-    """Compute the PageRank of each node through a random walk in the bipartite graph.
-
-    * Bigraphs
-
-    Parameters
-    ----------
-    damping_factor : float
-        Probability to continue the random walk.
-    solver : str
-        Which solver to use: 'bicgstab', 'lanczos', 'lsqr'.
-
-    Attributes
-    ----------
-    scores_ : np.ndarray
-        PageRank score of each row.
-    scores_row_ : np.ndarray
-        PageRank score of each row (copy of **scores_**).
-    scores_col_ : np.ndarray
-        PageRank score of each column.
-
-    Example
-    -------
-    >>> from sknetwork.data import star_wars
-    >>> bipagerank = BiPageRank()
-    >>> biadjacency = star_wars()
-    >>> seeds = {0: 1}
-    >>> np.round(bipagerank.fit_transform(biadjacency, seeds), 2)
-    array([0.45, 0.11, 0.28, 0.17])
-    """
-    def __init__(self, damping_factor: float = 0.85, solver: str = None, n_iter: int = 10):
-        PageRank.__init__(self, damping_factor, solver, n_iter)
-
-        self.scores_row_ = None
-        self.scores_col_ = None
-
-    def fit(self, biadjacency: Union[sparse.csr_matrix, np.ndarray],
-            seeds_row: Optional[Union[dict, np.ndarray]] = None, seeds_col: Optional[Union[dict, np.ndarray]] = None) \
-            -> 'BiPageRank':
-        """Fit algorithm to data.
-
-        Parameters
-        ----------
-        biadjacency :
-            Biadjacency matrix.
-        seeds_row :
-            Seed rows, as a dict or a vector.
-        seeds_col :
-            Seed columns, as a dict or a vector.
-            If both seeds_row and seeds_col are ``None``, the uniform distribution is used.
-
-        Returns
-        -------
-        self: :class:`BiPageRank`
-        """
-        biadjacency = check_format(biadjacency)
-        n_row, n_col = biadjacency.shape
-        adjacency = bipartite2undirected(biadjacency)
-        seeds = stack_seeds(n_row, n_col, seeds_row, seeds_col)
-
-        PageRank.fit(self, adjacency, seeds)
-        scores_row = self.scores_[:n_row]
-        scores_col = self.scores_[n_row:]
-
-        self.scores_row_ = scores_row / np.sum(scores_row)
-        self.scores_col_ = scores_col / np.sum(scores_col)
-        self.scores_ = self.scores_row_
-
-        return self
+BiPageRank = bialgorithm(PageRank)
 
 
 class CoPageRank(BiPageRank):
     """Compute the PageRank of each node through a two-hops random walk in the bipartite graph.
-    
+
     * Graphs
     * Digraphs
     * Bigraphs
